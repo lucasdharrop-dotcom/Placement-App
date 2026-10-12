@@ -18,7 +18,10 @@ function stripHtml(html: string) {
 }
 
 export async function fetchJobFromUrl(url: string): Promise<{ text: string }> {
-  const parsed = new URL(url); // throws on an invalid URL, caught by the caller
+  if (!URL.canParse(url)) {
+    throw new Error("That isn't a link. Paste the job text into the job description box instead.");
+  }
+  const parsed = new URL(url);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("Only http(s) URLs are supported");
   }
@@ -27,6 +30,9 @@ export async function fetchJobFromUrl(url: string): Promise<{ text: string }> {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; PlacementPilot/1.0)" },
     signal: AbortSignal.timeout(15000),
   });
+  if (res.status === 403 || res.status === 429 || res.headers.has("cf-mitigated")) {
+    throw new Error("That site blocks automated requests. Open the listing in your browser and paste the job text below instead.");
+  }
   if (!res.ok) throw new Error(`Could not fetch that URL (HTTP ${res.status})`);
 
   const html = await res.text();

@@ -23,6 +23,13 @@ export function AnalyseJobForm({ aiAvailable }: { aiAvailable: boolean }) {
 
   function handleAutofill() {
     if (!url.trim()) return;
+    // Job text pasted into the URL box belongs in the description box instead.
+    if (!/^https?:\/\//i.test(url.trim())) {
+      setText(url.trim());
+      setUrl("");
+      toast.info("That isn't a link, so it's been moved to the job description box.");
+      return;
+    }
     startAutofill(async () => {
       try {
         const { text: fetched } = await fetchJobFromUrl(url.trim());
