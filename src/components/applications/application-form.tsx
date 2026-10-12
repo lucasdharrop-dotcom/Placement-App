@@ -71,14 +71,20 @@ export function ApplicationForm({
   }, [company, existingApplications]);
 
   function handleAutofill() {
-    if (!jobUrl.trim()) {
-      toast.error("Paste the company's job listing URL first");
+    const input = jobUrl.trim();
+    const isUrl = /^https?:\/\//i.test(input);
+    // Job text pasted into the URL box (or already in the description) is analysed directly,
+    // for listings on sites that block the fetch.
+    const pastedText = isUrl ? "" : input || description.trim();
+    if (!isUrl && !pastedText) {
+      toast.error("Paste the job listing URL, or the job description text, first");
       return;
     }
     startAutofill(async () => {
       try {
-        const { text } = await fetchJobFromUrl(jobUrl.trim());
+        const text = isUrl ? (await fetchJobFromUrl(input)).text : pastedText;
         setDescription(text);
+        if (!isUrl && input) setJobUrl("");
 
         if (aiAvailable) {
           const fields = await analyzeJob(text);
@@ -107,7 +113,7 @@ export function ApplicationForm({
 
       <Card>
         <CardContent className="pt-6">
-          <Label htmlFor="autofill-url">Company&apos;s job listing URL</Label>
+          <Label htmlFor="autofill-url">Job listing URL or pasted job description</Label>
           <div className="mt-1.5 flex gap-2">
             <div className="relative flex-1">
               <Link2 className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
